@@ -1,6 +1,6 @@
 import java.io.*;
 import java.net.Socket;
-import java.security.PublicKey;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -75,12 +75,19 @@ public class ClientWithoutSecurity {
 		System.out.println("Program took: " + timeTaken/1000000.0 + "ms to run");
 	}
 
-	public PublicKey getAndVerifyPublishKey(X509Certificate serverCert) throws FileNotFoundException, CertificateException {
+	public PublicKey getAndVerifyServerPublishKey(X509Certificate serverCert) throws FileNotFoundException, CertificateException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
 		// Get CA publish key
 		InputStream fis = new FileInputStream("CA.crt");
 		CertificateFactory cf = CertificateFactory.getInstance("X.509");
 		X509Certificate CAcert =(X509Certificate)cf.generateCertificate(fis);
 		PublicKey CAPublishKey = CAcert.getPublicKey();
-		return null;
+
+		// Check validity and verify
+		serverCert.checkValidity();
+		serverCert.verify(CAPublishKey);
+
+		// Get server publish key
+		PublicKey serverPublishKey = serverCert.getPublicKey();
+		return serverPublishKey;
 	}
 }
