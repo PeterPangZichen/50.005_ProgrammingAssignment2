@@ -1,74 +1,81 @@
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.FileOutputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 public class ServerWithoutSecurity {
 
-	public static void main(String[] args) {
+	static int port = 4321;
 
-    	int port = 4321;
-    	if (args.length > 0) port = Integer.parseInt(args[0]);
+	static ServerSocket welcomeSocket = null;
+	static Socket connectionSocket = null;
+	static DataOutputStream toClient = null;
+	static DataInputStream fromClient = null;
 
-		ServerSocket welcomeSocket = null;
-		Socket connectionSocket = null;
-		DataOutputStream toClient = null;
-		DataInputStream fromClient = null;
+	static FileOutputStream fileOutputStream = null;
+	static BufferedOutputStream bufferedFileOutputStream = null;
 
-		FileOutputStream fileOutputStream = null;
-		BufferedOutputStream bufferedFileOutputStream = null;
+	public static void startConnection() throws IOException {
+		welcomeSocket = new ServerSocket(port);
+		connectionSocket = welcomeSocket.accept();
+		// Wait until socket is connected
+		fromClient = new DataInputStream(connectionSocket.getInputStream());
+		toClient = new DataOutputStream(connectionSocket.getOutputStream());
 
-		try {
-			welcomeSocket = new ServerSocket(port);
-			connectionSocket = welcomeSocket.accept();
-			// Wait until socket is connected
-			fromClient = new DataInputStream(connectionSocket.getInputStream());
-			toClient = new DataOutputStream(connectionSocket.getOutputStream());
+		while (!connectionSocket.isClosed()) {
 
-			while (!connectionSocket.isClosed()) {
+			int packetType = fromClient.readInt();
 
-				int packetType = fromClient.readInt();
+			// If the packet is for transferring the filename
+			if (packetType == 0) {
 
-				// If the packet is for transferring the filename
-				if (packetType == 0) {
+				System.out.println("Receiving file...");
 
-					System.out.println("Receiving file...");
+				int numBytes = fromClient.readInt();
+				byte [] filename = new byte[numBytes];
+				// Must use read fully!
+				// See: https://stackoverflow.com/questions/25897627/datainputstream-read-vs-datainputstream-readfully
+				fromClient.readFully(filename, 0, numBytes);
 
-					int numBytes = fromClient.readInt();
-					byte [] filename = new byte[numBytes];
-					// Must use read fully!
-					// See: https://stackoverflow.com/questions/25897627/datainputstream-read-vs-datainputstream-readfully
-					fromClient.readFully(filename, 0, numBytes);
-
-					fileOutputStream = new FileOutputStream("recv_"+new String(filename, 0, numBytes));
-					bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
+				fileOutputStream = new FileOutputStream("recv_"+new String(filename, 0, numBytes));
+				bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
 				// If the packet is for transferring a chunk of the file
-				} else if (packetType == 1) {
+			} else if (packetType == 1) {
 
-					int numBytes = fromClient.readInt();
-					byte [] block = new byte[numBytes];
-					fromClient.readFully(block, 0, numBytes);
+				int numBytes = fromClient.readInt();
+				byte [] block = new byte[numBytes];
+				fromClient.readFully(block, 0, numBytes);
 
-					if (numBytes > 0)
-						bufferedFileOutputStream.write(block, 0, numBytes);
+				if (numBytes > 0)
+					bufferedFileOutputStream.write(block, 0, numBytes);
 
-					if (numBytes < 117) {
-						System.out.println("Closing connection...");
+				if (numBytes < 117) {
+					System.out.println("Closing connection...");
 
-						if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
-						if (bufferedFileOutputStream != null) fileOutputStream.close();
-						fromClient.close();
-						toClient.close();
-						connectionSocket.close();
-					}
+					if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
+					if (bufferedFileOutputStream != null) fileOutputStream.close();
+					fromClient.close();
+					toClient.close();
+					connectionSocket.close();
 				}
 
-			}
-		} catch (Exception e) {e.printStackTrace();}
+				// If the packet is for transferring certificate
+			} else if (packetType == 2) {
 
+			}
+
+		}
+	}
+
+	public static void main(String[] args) {
+
+    	if (args.length > 0) port = Integer.parseInt(args[0]);
+
+		try {
+			startConnection();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 }
