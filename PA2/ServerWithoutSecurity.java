@@ -23,6 +23,7 @@ public class ServerWithoutSecurity {
 		try {
 			welcomeSocket = new ServerSocket(port);
 			connectionSocket = welcomeSocket.accept();
+			// Wait until socket is connected
 			fromClient = new DataInputStream(connectionSocket.getInputStream());
 			toClient = new DataOutputStream(connectionSocket.getOutputStream());
 
