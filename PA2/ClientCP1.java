@@ -11,13 +11,9 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Random;
 
-//import static sun.security.rsa.RSAUtil.KeyType.RSA;
-
 public class ClientCP1 {
 
-    String filename = "10000.txt";
-    //pang IP address
-    //String serverAddress = "10.12.161.167";
+    String filename = "100.txt";
     String serverAddress = "localhost";
     int port = 4321;
 
@@ -65,7 +61,7 @@ public class ClientCP1 {
         clientSocket.close();
     }
 
-    public void sendFiles() {
+    public void sendFile() {
         int numBytes = 0;
         long timeStarted = System.nanoTime();
 
@@ -76,12 +72,16 @@ public class ClientCP1 {
             Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
             cipher.init(Cipher.ENCRYPT_MODE, serverKey);
 
+            // Encrypt filename
+            byte[] filenameBytes = filename.getBytes();
+            byte[] encryptedFilenameBytes;
+            encryptedFilenameBytes = cipher.doFinal(filenameBytes);
 
             // Send the filename
             toServer.writeInt(0);
-            toServer.writeInt(filename.getBytes().length);
-            toServer.write(filename.getBytes());
-            //toServer.flush();
+            toServer.writeInt(encryptedFilenameBytes.length);
+            toServer.write(encryptedFilenameBytes);
+            toServer.flush();
 
             // Open the file
             fileInputStream = new FileInputStream(filename);
@@ -92,12 +92,12 @@ public class ClientCP1 {
             // Send the file
             for (boolean fileEnded = false; !fileEnded;) {
                 numBytes = bufferedFileInputStream.read(fromFileBuffer);
-                //encrypt
+                // Encrypt the file
                 byte[] fromFileBufferEncrypted=cipher.doFinal(fromFileBuffer);
                 fileEnded = numBytes < 117;
 
                 toServer.writeInt(1);
-                toServer.writeInt(numBytes);
+                toServer.writeInt(fromFileBufferEncrypted.length);
                 toServer.write(fromFileBufferEncrypted);
                 toServer.flush();
             }
@@ -105,6 +105,19 @@ public class ClientCP1 {
 
         long timeTaken = System.nanoTime() - timeStarted;
         System.out.println("Program took: " + timeTaken/1000000.0 + "ms to run");
+    }
+
+    public void sendFileNum(int filenum) throws IOException {
+        toServer.writeInt(filenum);
+        toServer.flush();
+    }
+
+    public void sendFiles(String[] filenames){
+        for(int i=0;i<filenames.length;i++){
+            setFilename(filenames[i]);
+            System.out.println("Sending file: "+filename+"...");
+            sendFile();
+        }
     }
 
     public void sendNonce() throws IOException {

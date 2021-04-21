@@ -2,15 +2,15 @@ public class ServerRunnerCP1 {
 
 	public static void main(String args[]){
 		try {
-			ServerCP1 server = new ServerCP1();
-			server.startConnection();
-			server.receiveNonce();
-			server.encryptNonce();
-			server.sendEncryptedNonce();
-			server.sendCertificate();
+			ServerCP1 serverCP1 = new ServerCP1();
+			serverCP1.startConnection();
+			serverCP1.receiveNonce();
+			serverCP1.encryptNonce();
+			serverCP1.sendEncryptedNonce();
+			serverCP1.sendCertificate();
 			//server.receiveSessionKey();
-			server.receiveFiles();
-			server.closeConnection();
+			serverCP1.receiveFiles();
+			serverCP1.closeConnection();
 		}catch (Exception e){
 			e.printStackTrace();
 		}

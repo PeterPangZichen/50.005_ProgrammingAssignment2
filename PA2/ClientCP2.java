@@ -61,7 +61,6 @@ public class ClientCP2 {
     }
 
     public void sendFile() {
-        int numBytes = 0;
         long timeStarted = System.nanoTime();
 
         try {
