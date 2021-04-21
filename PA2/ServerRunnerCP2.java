@@ -1,4 +1,4 @@
-public class ServerRunnerCP1 {
+public class ServerRunnerCP2 {
 
 	public static void main(String args[]){
 		try {
