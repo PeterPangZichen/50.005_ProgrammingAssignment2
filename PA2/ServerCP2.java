@@ -13,7 +13,7 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Random;
 
-public class Server {
+public class ServerCP2 {
 
     int port = 4321;
     int filenum = 1;
@@ -36,7 +36,7 @@ public class Server {
 
     FileOutputStream fileOutputStream = null;
 
-    public Server() throws Exception {
+    public ServerCP2() throws Exception {
         publishKey = PublicKeyReader.get("publish_key.der");
         privateKey = PrivateKeyReader.get("private_key.der");
 
@@ -166,8 +166,5 @@ public class Server {
         // Build session key instance
         sessionKey = new SecretKeySpec(decryptedSessionKey,0,decryptedSessionKey.length,"AES");
     }
-
-    public void encryptFragment(){
-
-    }
 }
+

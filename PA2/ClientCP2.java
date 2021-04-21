@@ -8,7 +8,7 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Random;
 
-public class Client {
+public class ClientCP2 {
 
     String filename = "100.txt";
     String serverAddress = "localhost";
