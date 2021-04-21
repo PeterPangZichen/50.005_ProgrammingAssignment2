@@ -1,7 +1,7 @@
 public class ClientRunnerCP2 {
 
 	public static void main(String args[]){
-		String[] filenames = new String[]{"picture.jpg"};
+		String[] filenames = new String[]{"100.txt","100.txt","200.txt","500.txt","1000.txt","5000.txt","10000.txt","50000.txt","100000.txt"};
 		if(args.length!=0) filenames = args;
 		try {
 			ClientCP2 clientCP2 = new ClientCP2();

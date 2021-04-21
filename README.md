@@ -1,10 +1,10 @@
 # ProgrammingAssignment2
-For CP1, run ServerCP1 first then you can see "Wait for clients for connection". Then run Client CP1. If given any 
-valid file(s) to send from client to server, you can see regarding file(s) under the same directory after short time (usually less than one second).
 
-For CP2, run ServerCP2 first then you can see "Wait for clients for connection". Then run Client CP2. If given any 
-valid file(s) to send from client to server, you can see regarding file(s) under the same directory after short time (usually less than one second).
+## CP1: Asymmetric encryption
+To run AP with CP1, run "ServerRunnerCP1" first then "Wait for clients for connection" is displayed. Then run "ClientRunnerCP1" and files will be sent from client to server, which will finally be written in the project directory.
+  
+## CP2: Symmetric encryption
+To run AP with CP2, run "ServerRunnerCP2" first then "Wait for clients for connection" is displayed. Then run "ClientRunnerCP2" and files will be sent from client to server, which will finally be written in the project directory.
+  
 
-Name of pairs:
-ServerCP1.java & ClientCP1.java
-ServerCP2.java & ClientCP2.java
+##### Creator: Xu Song/Pang Zichen
