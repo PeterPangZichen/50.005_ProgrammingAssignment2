@@ -97,6 +97,7 @@ public class ClientCP1 {
                 fileEnded = numBytes < 117;
 
                 toServer.writeInt(1);
+                toServer.writeInt(numBytes);
                 toServer.writeInt(fromFileBufferEncrypted.length);
                 toServer.write(fromFileBufferEncrypted);
                 toServer.flush();

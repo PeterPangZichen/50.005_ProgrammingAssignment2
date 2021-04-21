@@ -64,11 +64,18 @@ public class ServerCP1 {
         filenum = fromClient.readInt();
     }
 
-    public void receiveFiles(){
+    public void receiveFile(){
         try{
             while (!connectionSocket.isClosed()) {
 
-                int packetType = fromClient.readInt();
+                int packetType = 1;
+
+                try {
+                    packetType = fromClient.readInt();
+                }catch (EOFException e){
+                    System.out.println("File sending finished...");
+                    break;
+                }
 
                 // If the packet is for transferring the filename
                 if (packetType == 0) {
@@ -94,23 +101,20 @@ public class ServerCP1 {
                 } else if (packetType == 1) {
 
                     // Initialize cipher
-                    Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-                    cipher.init(Cipher.DECRYPT_MODE, sessionKey);
+                    Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+                    cipher.init(Cipher.DECRYPT_MODE, privateKey);
 
                     int numBytes = fromClient.readInt();
-                    byte[] encryptedBlock = new byte[numBytes];
-                    fromClient.readFully(encryptedBlock, 0, numBytes);
+                    int blockLength = fromClient.readInt();
+                    byte[] encryptedBlock = new byte[blockLength];
+                    fromClient.readFully(encryptedBlock, 0, blockLength);
 
                     // Decrypt the file
                     byte[] block = cipher.doFinal(encryptedBlock);
-                    System.out.println(block.length);
 
-
-                    if (block.length > 0)
-                        bufferedFileOutputStream.write(block, 0, block.length);
-
-                    if (block.length < 117) {
-                        break;
+                    if (block.length > 0) {
+                        bufferedFileOutputStream.write(block, 0, numBytes);
+                        bufferedFileOutputStream.flush();
                     }
 
                     // If the packet is for transferring the session key
@@ -127,6 +131,12 @@ public class ServerCP1 {
             }
         }catch(Exception e){
             e.printStackTrace();
+        }
+    }
+
+    public void receiveFiles(){
+        for(int i=0;i<filenum;i++){
+            receiveFile();
         }
     }
 
@@ -168,9 +178,5 @@ public class ServerCP1 {
         decryptedSessionKey = cipher.doFinal(encryptedSessionKey);
         // Build session key instance
         sessionKey = new SecretKeySpec(decryptedSessionKey,0,decryptedSessionKey.length,"AES");
-    }
-
-    public void encryptFragment(){
-
     }
 }

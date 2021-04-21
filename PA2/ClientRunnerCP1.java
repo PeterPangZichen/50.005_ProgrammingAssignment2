@@ -1,7 +1,7 @@
 public class ClientRunnerCP1 {
 
 	public static void main(String args[]){
-		String[] filenames = new String[]{"picture.jpg"};
+		String[] filenames = new String[]{"picture.jpg","music.mp3"};
 		if(args.length!=0) filenames = args;
 		try {
 			ClientCP1 clientCP1 = new ClientCP1();

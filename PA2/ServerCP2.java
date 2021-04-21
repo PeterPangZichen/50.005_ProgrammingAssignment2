@@ -107,6 +107,7 @@ public class ServerCP2 {
                     fileOutputStream.write(fileBytes);
                     fileOutputStream.close();
                     break;
+
                     // If the packet is for transferring the session key
                 } else if (packetType == 2) {
 
