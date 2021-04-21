@@ -8,7 +8,8 @@ public class ServerRunnerCP1 {
 			serverCP1.encryptNonce();
 			serverCP1.sendEncryptedNonce();
 			serverCP1.sendCertificate();
-			//server.receiveSessionKey();
+			// Handshake built
+			serverCP1.receiveFileNum();
 			serverCP1.receiveFiles();
 			serverCP1.closeConnection();
 		}catch (Exception e){

@@ -15,6 +15,7 @@ import java.util.Random;
 public class ServerCP1 {
 
     int port = 4321;
+    int filenum = 1;
 
     PublicKey publishKey;
     PrivateKey privateKey;
@@ -57,6 +58,10 @@ public class ServerCP1 {
     public void receiveNonce() throws IOException {
         System.out.println("Receiving nonce from client...");
         fromClient.read(nonce);
+    }
+
+    public void receiveFileNum() throws IOException {
+        filenum = fromClient.readInt();
     }
 
     public void receiveFiles(){
