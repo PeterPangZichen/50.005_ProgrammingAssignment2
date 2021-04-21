@@ -1,0 +1,11 @@
+The problem we find:
+
+The nounce fron the client: "Hello SecStore, please prove your identity!"
+The nounce in Ks-(nounce) fron the client: "Hello this is SecStore!"
+the nounce send by the client and the nounce in Ks-(nounce) is not the same as show in the graph. 
+As a result of that, Authentication is offended because clients cannot verify the identity of the server.
+
+How we deal with it:
+the server use the same nounce sent by the cilent and use its own private key to encrypt the nounce.
+
+
