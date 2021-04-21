@@ -1,7 +1,4 @@
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
+import javax.crypto.*;
 import java.io.*;
 import java.net.Socket;
 import java.security.*;
@@ -18,12 +15,14 @@ public class Client {
     int port = 4321;
 
     PublicKey serverKey;
+    SecretKey sessionKey;
 
     X509Certificate serverCert;
 
     private byte[] nonce = new byte[32];
     private byte[] decryptedNonce = new byte[32];
     private byte[] encryptedNonce = new byte[128];
+    private byte[] encryptedSessionKey;
 
     Socket clientSocket = null;
     DataOutputStream toServer = null;
@@ -68,26 +67,39 @@ public class Client {
         try {
             System.out.println("Sending file...");
 
+            // Initialize cipher
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, sessionKey);
+
+            // Encrypt filename
+            byte[] filenameBytes = filename.getBytes();
+            byte[] encryptedFilenameBytes;
+            encryptedFilenameBytes = cipher.doFinal(filenameBytes);
+
             // Send the filename
             toServer.writeInt(0);
-            toServer.writeInt(filename.getBytes().length);
-            toServer.write(filename.getBytes());
-            //toServer.flush();
+            toServer.writeInt(encryptedFilenameBytes.length);
+            toServer.write(encryptedFilenameBytes);
+            toServer.flush();
 
             // Open the file
             fileInputStream = new FileInputStream(filename);
             bufferedFileInputStream = new BufferedInputStream(fileInputStream);
 
             byte [] fromFileBuffer = new byte[117];
+            byte [] encryptedBuffer;
 
             // Send the file
             for (boolean fileEnded = false; !fileEnded;) {
                 numBytes = bufferedFileInputStream.read(fromFileBuffer);
                 fileEnded = numBytes < 117;
 
+                // Encrypt the file
+                encryptedBuffer = cipher.doFinal(fromFileBuffer);
+
                 toServer.writeInt(1);
-                toServer.writeInt(numBytes);
-                toServer.write(fromFileBuffer);
+                toServer.writeInt(encryptedBuffer.length);
+                toServer.write(encryptedBuffer);
                 toServer.flush();
             }
         } catch (Exception e) {e.printStackTrace();}
@@ -146,6 +158,22 @@ public class Client {
         serverCert.verify(CAKey);
 
         System.out.println("Certificate check pass!");
+    }
+
+    public void sendSessionKey() throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IOException, BadPaddingException, IllegalBlockSizeException {
+        // Generate session key
+        sessionKey = KeyGenerator.getInstance("AES").generateKey();
+
+        // Encrypt session key with server publish key
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, serverKey);
+        encryptedSessionKey = cipher.doFinal(sessionKey.getEncoded());
+
+        // Send session key
+        toServer.writeInt(2);
+        toServer.writeInt(encryptedSessionKey.length);
+        toServer.write(encryptedSessionKey);
+        toServer.flush();
     }
 
     class DifferentNonceException extends Exception{

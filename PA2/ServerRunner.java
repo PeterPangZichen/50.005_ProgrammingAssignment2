@@ -12,6 +12,7 @@ public class ServerRunner {
 			server.encryptNonce();
 			server.sendEncryptedNonce();
 			server.sendCertificate();
+			server.receiveSessionKey();
 			server.receiveFiles();
 			server.closeConnection();
 		}catch (Exception e){

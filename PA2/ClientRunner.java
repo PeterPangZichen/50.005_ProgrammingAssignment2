@@ -17,6 +17,7 @@ public class ClientRunner {
 			client.readAndVerifyServerPublicKey();
 			client.verifyNonce();
 			System.out.println("Handshake is built, start sending files...");
+			client.sendSessionKey();
 			client.sendFiles();
 			client.closeConnection();
 		}catch (Exception e){

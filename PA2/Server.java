@@ -1,7 +1,5 @@
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
+import javax.crypto.*;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -20,11 +18,14 @@ public class Server {
 
     PublicKey publishKey;
     PrivateKey privateKey;
+    SecretKey sessionKey;
 
     X509Certificate serverCert;
 
     byte[] nonce = new byte[32];
     byte[] encryptedNonce = new byte[128];
+    byte[] encryptedSessionKey;
+    byte[] decryptedSessionKey;
 
     ServerSocket welcomeSocket = null;
     Socket connectionSocket = null;
@@ -58,45 +59,69 @@ public class Server {
         fromClient.read(nonce);
     }
 
-    public void receiveFiles() throws IOException {
-        while (!connectionSocket.isClosed()) {
+    public void receiveFiles(){
+        try{
+            while (!connectionSocket.isClosed()) {
 
-            int packetType = fromClient.readInt();
+                int packetType = fromClient.readInt();
 
-            // If the packet is for transferring the filename
-            if (packetType == 0) {
+                // If the packet is for transferring the filename
+                if (packetType == 0) {
 
-                System.out.println("Receiving file...");
+                    System.out.println("Receiving file...");
 
-                int numBytes = fromClient.readInt();
-                byte [] filename = new byte[numBytes];
-                // Must use read fully!
-                // See: https://stackoverflow.com/questions/25897627/datainputstream-read-vs-datainputstream-readfully
-                fromClient.readFully(filename, 0, numBytes);
+                    // Initialize cipher
+                    Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+                    cipher.init(Cipher.DECRYPT_MODE, sessionKey);
 
-                fileOutputStream = new FileOutputStream("recv_"+new String(filename, 0, numBytes));
-                bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
+                    int numBytes = fromClient.readInt();
+                    byte[] encryptedFilenameBytes = new byte[numBytes];
+                    fromClient.readFully(encryptedFilenameBytes, 0, numBytes);
 
-            // If the packet is for transferring a chunk of the file
-            } else if (packetType == 1) {
+                    // Decrypt filename
+                    byte[] filenameBytes;
+                    filenameBytes = cipher.doFinal(encryptedFilenameBytes);
 
-                int numBytes = fromClient.readInt();
-                byte [] block = new byte[numBytes];
-                fromClient.readFully(block, 0, numBytes);
+                    fileOutputStream = new FileOutputStream("recv_" + new String(filenameBytes, 0, filenameBytes.length));
+                    bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
-                if (numBytes > 0)
-                    bufferedFileOutputStream.write(block, 0, numBytes);
+                    // If the packet is for transferring a chunk of the file
+                } else if (packetType == 1) {
 
-                if (numBytes < 117) {
+                    // Initialize cipher
+                    Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+                    cipher.init(Cipher.DECRYPT_MODE, sessionKey);
+
+                    int numBytes = fromClient.readInt();
+                    byte[] encryptedBlock = new byte[numBytes];
+                    fromClient.readFully(encryptedBlock, 0, numBytes);
+
+                    // Decrypt the file
+                    byte[] block = cipher.doFinal(encryptedBlock);
+                    System.out.println(block.length);
+
+
+                    if (block.length > 0)
+                        bufferedFileOutputStream.write(block, 0, block.length);
+
+                    if (block.length < 117) {
+                        break;
+                    }
+
+                    // If the packet is for transferring the session key
+                } else if (packetType == 2) {
+
+                    int numBytes = fromClient.readInt();
+                    encryptedSessionKey = new byte[numBytes];
+                    fromClient.readFully(encryptedSessionKey, 0, numBytes);
                     break;
+
+                } else if (packetType == 3) {
+
                 }
-
-            // If the packet is for transferring certificate
-            } else if (packetType == 2) {
-
-            } else if (packetType == 3){
-
             }
+        }catch(Exception e){
+            e.printStackTrace();
         }
     }
 
@@ -127,5 +152,20 @@ public class Server {
         System.out.println("Sending certificate to client...");
         toClient.write(serverCert.getEncoded());
         toClient.flush();
+    }
+
+    public void receiveSessionKey() throws IOException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException {
+        // Receive session key from client
+        receiveFiles();
+        // Decrypt session key
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        decryptedSessionKey = cipher.doFinal(encryptedSessionKey);
+        // Build session key instance
+        sessionKey = new SecretKeySpec(decryptedSessionKey,0,decryptedSessionKey.length,"AES");
+    }
+
+    public void encryptFragment(){
+
     }
 }
