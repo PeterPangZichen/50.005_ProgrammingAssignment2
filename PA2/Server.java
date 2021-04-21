@@ -45,15 +45,17 @@ public class Server {
 
     public void startConnection() throws IOException {
         welcomeSocket = new ServerSocket(port);
+        System.out.println("Wait for client's connection...");
         connectionSocket = welcomeSocket.accept();
         // Wait until socket is connected
+        System.out.println("Establishing connection to client...");
         fromClient = new DataInputStream(connectionSocket.getInputStream());
         toClient = new DataOutputStream(connectionSocket.getOutputStream());
     }
 
     public void receiveNonce() throws IOException {
+        System.out.println("Receiving nonce from client...");
         fromClient.read(nonce);
-        System.out.println(new String(nonce));
     }
 
     public void receiveFiles() throws IOException {
@@ -86,8 +88,7 @@ public class Server {
                     bufferedFileOutputStream.write(block, 0, numBytes);
 
                 if (numBytes < 117) {
-                    System.out.println("Closing connection...");
-                    closeConnection();
+                    break;
                 }
 
             // If the packet is for transferring certificate
@@ -100,6 +101,7 @@ public class Server {
     }
 
     public void closeConnection() throws IOException {
+        System.out.println("Closing connection...");
         if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
         if (bufferedFileOutputStream != null) fileOutputStream.close();
         fromClient.close();
@@ -109,17 +111,20 @@ public class Server {
     }
 
     public void encryptNonce() throws NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException {
+        System.out.println("Encrypting nonce...");
         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         cipher.init(Cipher.ENCRYPT_MODE, privateKey);
         encryptedNonce = cipher.doFinal(nonce);
     }
 
     public void sendEncryptedNonce() throws IOException {
+        System.out.println("Sending encrypted nonce to client...");
         toClient.write(encryptedNonce);
         toClient.flush();
     }
 
     public void sendCertificate() throws IOException, CertificateEncodingException {
+        System.out.println("Sending certificate to client...");
         toClient.write(serverCert.getEncoded());
         toClient.flush();
     }

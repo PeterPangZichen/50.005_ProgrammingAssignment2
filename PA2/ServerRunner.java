@@ -8,8 +8,12 @@ public class ServerRunner {
 		try {
 			Server server = new Server();
 			server.startConnection();
-			server.sendCertificate();
 			server.receiveNonce();
+			server.encryptNonce();
+			server.sendEncryptedNonce();
+			server.sendCertificate();
+			System.out.println("Handshake is built, start sending files...");
+			server.receiveFiles();
 			server.closeConnection();
 		}catch (Exception e){
 			e.printStackTrace();

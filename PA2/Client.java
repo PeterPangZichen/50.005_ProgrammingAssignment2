@@ -8,11 +8,12 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Random;
 
 public class Client {
 
-    String filename;
+    String filename = "100.txt";
     String serverAddress = "localhost";
     int port = 4321;
 
@@ -20,8 +21,9 @@ public class Client {
 
     X509Certificate serverCert;
 
-    private static byte[] nonce = new byte[32];
-    private static byte[] encryptedNonce = new byte[128];
+    private byte[] nonce = new byte[32];
+    private byte[] decryptedNonce = new byte[32];
+    private byte[] encryptedNonce = new byte[128];
 
     Socket clientSocket = null;
     DataOutputStream toServer = null;
@@ -44,40 +46,26 @@ public class Client {
 
     public void startConnection() throws IOException {
         // Connect to server and get the input and output streams
+        System.out.println("Establishing connection to server...");
         clientSocket = new Socket(serverAddress, port);
         toServer = new DataOutputStream(clientSocket.getOutputStream());
         fromServer = new DataInputStream(clientSocket.getInputStream());
     }
 
     public void closeConnection() throws IOException {
+        System.out.println("Closing connection...");
         if (bufferedFileInputStream != null) bufferedFileInputStream.close();
         if (fileInputStream != null) fileInputStream.close();
         fromServer.close();
         toServer.close();
         clientSocket.close();
-        System.out.println("Closing connection...");
     }
 
-    public void sendFile() {
-
+    public void sendFiles() {
         int numBytes = 0;
-
-        Socket clientSocket = null;
-
-        FileInputStream fileInputStream = null;
-        BufferedInputStream bufferedFileInputStream = null;
-
         long timeStarted = System.nanoTime();
 
         try {
-
-            System.out.println("Establishing connection to server...");
-
-            // Connect to server and get the input and output streams
-            clientSocket = new Socket(serverAddress, port);
-            toServer = new DataOutputStream(clientSocket.getOutputStream());
-            fromServer = new DataInputStream(clientSocket.getInputStream());
-
             System.out.println("Sending file...");
 
             // Send the filename
@@ -102,12 +90,6 @@ public class Client {
                 toServer.write(fromFileBuffer);
                 toServer.flush();
             }
-
-            bufferedFileInputStream.close();
-            fileInputStream.close();
-
-            System.out.println("Closing connection...");
-
         } catch (Exception e) {e.printStackTrace();}
 
         long timeTaken = System.nanoTime() - timeStarted;
@@ -115,9 +97,9 @@ public class Client {
     }
 
     public void sendNonce() throws IOException {
+        System.out.println("Sending nonce to server...");
         Random random = new Random();
         random.nextBytes(nonce);
-        System.out.println(new String(nonce));
         toServer.write(nonce);
         toServer.flush();
     }
@@ -126,18 +108,29 @@ public class Client {
         fromServer.read(encryptedNonce);
     }
 
+    public void verifyNonce() throws IllegalBlockSizeException, InvalidKeyException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, DifferentNonceException {
+        System.out.println("Verifying server's encrypted nonce...");
+        decryptNonce();
+        boolean check = Arrays.equals(decryptedNonce, nonce);
+        if(!check){
+            throw new DifferentNonceException();
+        }
+        System.out.println("Nonce check pass!");
+    }
+
     public void receiveCertificate() throws CertificateException {
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
         serverCert =(X509Certificate)cf.generateCertificate(fromServer);
     }
 
-    public byte[] decryptNonce(byte[] encryptedNonce) throws NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException {
+    public void decryptNonce() throws NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException {
         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         cipher.init(Cipher.DECRYPT_MODE, serverKey);
-        return cipher.doFinal(encryptedNonce);
+        decryptedNonce = cipher.doFinal(encryptedNonce);
     }
 
     public void readAndVerifyServerPublicKey() throws FileNotFoundException, CertificateException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+        System.out.println("Verifying server's certificate...");
         // Get CA's public key from CA's certificate
         InputStream fis = new FileInputStream("cacsertificate.crt");
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
@@ -152,6 +145,10 @@ public class Client {
         serverCert.checkValidity();
         serverCert.verify(CAKey);
 
-        System.out.println("Publish key is verified");
+        System.out.println("Certificate check pass!");
+    }
+
+    class DifferentNonceException extends Exception{
+
     }
 }

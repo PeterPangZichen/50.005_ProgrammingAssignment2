@@ -11,9 +11,13 @@ public class ClientRunner {
 		try {
 			Client client = new Client();
 			client.startConnection();
+			client.sendNonce();
+			client.receiveEncryptedNonce();
 			client.receiveCertificate();
 			client.readAndVerifyServerPublicKey();
-			client.sendNonce();
+			client.verifyNonce();
+			System.out.println("Handshake is built, start sending files...");
+			client.sendFiles();
 			client.closeConnection();
 		}catch (Exception e){
 			e.printStackTrace();
