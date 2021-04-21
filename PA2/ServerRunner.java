@@ -12,7 +12,6 @@ public class ServerRunner {
 			server.encryptNonce();
 			server.sendEncryptedNonce();
 			server.sendCertificate();
-			System.out.println("Handshake is built, start sending files...");
 			server.receiveFiles();
 			server.closeConnection();
 		}catch (Exception e){
