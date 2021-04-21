@@ -10,11 +10,13 @@ import java.security.PublicKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Random;
 
 public class Server {
 
     int port = 4321;
+    int filenum = 1;
 
     PublicKey publishKey;
     PrivateKey privateKey;
@@ -33,7 +35,6 @@ public class Server {
     DataInputStream fromClient = null;
 
     FileOutputStream fileOutputStream = null;
-    BufferedOutputStream bufferedFileOutputStream = null;
 
     public Server() throws Exception {
         publishKey = PublicKeyReader.get("publish_key.der");
@@ -59,7 +60,11 @@ public class Server {
         fromClient.read(nonce);
     }
 
-    public void receiveFiles(){
+    public void receiveFileNum() throws IOException {
+        filenum = fromClient.readInt();
+    }
+
+    public void receiveFile(){
         try{
             while (!connectionSocket.isClosed()) {
 
@@ -83,7 +88,6 @@ public class Server {
                     filenameBytes = cipher.doFinal(encryptedFilenameBytes);
 
                     fileOutputStream = new FileOutputStream("recv_" + new String(filenameBytes, 0, filenameBytes.length));
-                    bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
                     // If the packet is for transferring a chunk of the file
                 } else if (packetType == 1) {
@@ -97,17 +101,12 @@ public class Server {
                     fromClient.readFully(encryptedBlock, 0, numBytes);
 
                     // Decrypt the file
-                    byte[] block = cipher.doFinal(encryptedBlock);
-                    System.out.println(block.length);
+                    byte[] fileBytes = cipher.doFinal(encryptedBlock);
+                    System.out.println("File size: "+fileBytes.length);
 
-
-                    if (block.length > 0)
-                        bufferedFileOutputStream.write(block, 0, block.length);
-
-                    if (block.length < 117) {
-                        break;
-                    }
-
+                    fileOutputStream.write(fileBytes);
+                    fileOutputStream.close();
+                    break;
                     // If the packet is for transferring the session key
                 } else if (packetType == 2) {
 
@@ -116,8 +115,6 @@ public class Server {
                     fromClient.readFully(encryptedSessionKey, 0, numBytes);
                     break;
 
-                } else if (packetType == 3) {
-
                 }
             }
         }catch(Exception e){
@@ -125,10 +122,15 @@ public class Server {
         }
     }
 
+    public void receiveFiles(){
+        for(int i=0;i<filenum;i++){
+            receiveFile();
+        }
+    }
+
     public void closeConnection() throws IOException {
         System.out.println("Closing connection...");
-        if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
-        if (bufferedFileOutputStream != null) fileOutputStream.close();
+        fileOutputStream.close();
         fromClient.close();
         toClient.close();
         welcomeSocket.close();
@@ -156,7 +158,7 @@ public class Server {
 
     public void receiveSessionKey() throws IOException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException {
         // Receive session key from client
-        receiveFiles();
+        receiveFile();
         // Decrypt session key
         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         cipher.init(Cipher.DECRYPT_MODE, privateKey);

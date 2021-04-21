@@ -60,7 +60,7 @@ public class Client {
         clientSocket.close();
     }
 
-    public void sendFiles() {
+    public void sendFile() {
         int numBytes = 0;
         long timeStarted = System.nanoTime();
 
@@ -83,29 +83,39 @@ public class Client {
             toServer.flush();
 
             // Open the file
+            File file = new File(filename);
             fileInputStream = new FileInputStream(filename);
-            bufferedFileInputStream = new BufferedInputStream(fileInputStream);
 
-            byte [] fromFileBuffer = new byte[117];
-            byte [] encryptedBuffer;
+            // Read the file
+            byte[] fileBytesBuffer = new byte[(int)file.length()];
+            fileInputStream.read(fileBytesBuffer, 0, fileBytesBuffer.length);
+
+            // Encrypt the file
+            byte[] encryptedBuffer = cipher.doFinal(fileBytesBuffer);
 
             // Send the file
-            for (boolean fileEnded = false; !fileEnded;) {
-                numBytes = bufferedFileInputStream.read(fromFileBuffer);
-                fileEnded = numBytes < 117;
+            toServer.writeInt(1);
+            toServer.writeInt(encryptedBuffer.length);
+            toServer.write(encryptedBuffer);
+            toServer.flush();
 
-                // Encrypt the file
-                encryptedBuffer = cipher.doFinal(fromFileBuffer);
-
-                toServer.writeInt(1);
-                toServer.writeInt(encryptedBuffer.length);
-                toServer.write(encryptedBuffer);
-                toServer.flush();
-            }
         } catch (Exception e) {e.printStackTrace();}
 
         long timeTaken = System.nanoTime() - timeStarted;
         System.out.println("Program took: " + timeTaken/1000000.0 + "ms to run");
+    }
+
+    public void sendFileNum(int filenum) throws IOException {
+        toServer.writeInt(filenum);
+        toServer.flush();
+    }
+
+    public void sendFiles(String[] filenames){
+        for(int i=0;i<filenames.length;i++){
+            setFilename(filenames[i]);
+            System.out.println("Sending file: "+filename+"...");
+            sendFile();
+        }
     }
 
     public void sendNonce() throws IOException {

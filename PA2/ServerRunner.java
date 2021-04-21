@@ -12,7 +12,9 @@ public class ServerRunner {
 			server.encryptNonce();
 			server.sendEncryptedNonce();
 			server.sendCertificate();
+			// Handshake built
 			server.receiveSessionKey();
+			server.receiveFileNum();
 			server.receiveFiles();
 			server.closeConnection();
 		}catch (Exception e){
